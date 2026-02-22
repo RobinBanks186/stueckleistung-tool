@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stückleistung – Tagessteuerung</title>
+  <style>
+    :root { --gap: 12px; --radius: 14px; --shadow: 0 6px 18px rgba(0,0,0,.08); }
+    body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; margin: 0; background: #f6f7fb; color:#111; }
+    header { padding: 18px 16px; background:#fff; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 2; }
+    h1 { margin: 0; font-size: 18px; }
+    .wrap { padding: 14px 12px 24px; max-width: 980px; margin: 0 auto; }
+    .grid { display: grid; gap: var(--gap); }
+    @media (min-width: 840px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .card { background:#fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
+    .card h2 { margin: 0 0 10px; font-size: 15px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    label { font-size: 12px; color:#444; display:block; margin-bottom: 6px; }
+    input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #d9dbe3; border-radius: 12px; outline: none; }
+    input:focus { border-color:#7aa7ff; box-shadow: 0 0 0 4px rgba(122,167,255,.18); }
+    .kpi { display:grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 520px) { .kpi { grid-template-columns: 1fr 1fr; } }
+    .k { border:1px solid #eef0f6; border-radius: 14px; padding: 12px; }
+    .k .t { font-size: 12px; color:#555; }
+    .k .v { font-size: 22px; font-weight: 700; margin-top: 4px; }
+    .pill { display:inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; margin-top: 8px; }
+    .ok { background: rgba(24,160,88,.12); color:#0b6b38; border:1px solid rgba(24,160,88,.25); }
+    .warn { background: rgba(245,158,11,.14); color:#7a4a00; border:1px solid rgba(245,158,11,.3); }
+    .bad { background: rgba(239,68,68,.12); color:#7a1111; border:1px solid rgba(239,68,68,.25); }
+    .muted { color:#666; font-size: 12px; margin-top: 8px; line-height: 1.35; }
+    button { width:100%; padding: 12px; font-size: 16px; border: 0; border-radius: 12px; background:#111827; color:#fff; cursor:pointer; }
+    button:active { transform: translateY(1px); }
+    .small { font-size: 12px; color:#666; }
+    .hr { height:1px;background:#eef0f6;margin:10px 0; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Stückleistung – Tagessteuerung & Prognose</h1>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <div class="card">
+      <h2>Eingaben</h2>
+
+      <div class="row">
+        <div>
+          <label>Ziel-Stückleistung (Stk/Std)</label>
+          <input id="ziel" type="number" inputmode="decimal" min="0" step="0.1" value="0" />
+        </div>
+        <div>
+          <label>Bisher verkaufte Stück</label>
+          <input id="stueck_bis" type="number" inputmode="numeric" min="0" step="1" value="0" />
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <div>
+          <label>Geplante Gesamtstunden (optional)</label>
+          <input id="stunden_total" type="number" inputmode="decimal" min="0" step="0.25" value="0" />
+          <div class="small">Wenn du diese nutzt: unten „Bereits geleistete Stunden“ ausfüllen.</div>
+        </div>
+        <div>
+          <label>Bereits geleistete Stunden (optional)</label>
+          <input id="stunden_bis" type="number" inputmode="decimal" min="0" step="0.25" value="0" />
+          <div class="small">Reststunden = Gesamtstunden − geleistet.</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label><b>Reststunden ab jetzt</b> (Override, optional)</label>
+          <input id="stunden_rest_override" type="number" inputmode="decimal" min="0" step="0.25" value="" placeholder="z.B. 12.5" />
+          <div class="small">Wenn ausgefüllt, wird damit gerechnet (z.B. wegen Öffnungszeiten / Staffing-Plan).</div>
+        </div>
+        <div>
+          <label>Hinweis</label>
+          <div class="small" style="padding:12px;border:1px dashed #d9dbe3;border-radius:12px;">
+            Für die Genauigkeit ist entscheidend: <b>Rest-Einsatzstunden</b> (nicht reine Öffnungszeit).
+            Wenn Öffnungszeit ≠ Einsatzstunden, nutze das Override-Feld.
+          </div>
+        </div>
+      </div>
+
+      <button id="reset">Zurücksetzen</button>
+
+      <div class="muted">
+        Praxis-Tipp: Viele brauchen nur 3 Werte: <b>Ziel</b>, <b>Stück bisher</b>, <b>Reststunden ab jetzt</b>.
+        Dann zeigt das Tool sofort „Benötigt ab jetzt (Stk/Std)“.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Ergebnisse</h2>
+      <div class="kpi">
+        <div class="k">
+          <div class="t">Aktuelle Stückleistung (Ist)</div>
+          <div class="v" id="k_ist">–</div>
+          <div class="pill" id="pill_status">–</div>
+        </div>
+        <div class="k">
+          <div class="t">Benötigt ab jetzt (Rest des Tages)</div>
+          <div class="v" id="k_rest_need">–</div>
+          <div class="small">Stk/Std, um Ziel zu erreichen</div>
+        </div>
+        <div class="k">
+          <div class="t">Fehlende Stück bis Ziel</div>
+          <div class="v" id="k_fehl">–</div>
+          <div class="small">Stück, um Ziel (total) zu schaffen</div>
+        </div>
+        <div class="k">
+          <div class="t">Prognose Tages-Stückleistung (wenn Pace bleibt)</div>
+          <div class="v" id="k_prog">–</div>
+          <div class="small">Stk/Std am Tagesende</div>
+        </div>
+      </div>
+
+      <div class="muted" id="hint"></div>
+      <div class="muted small" id="rest_src"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+
+  const bindIds = ["ziel","stunden_total","stunden_bis","stueck_bis","stunden_rest_override"];
+
+  function num(v){ const n = parseFloat(v); return isFinite(n) ? n : NaN; }
+  function n0(v){ const n = parseFloat(v); return isFinite(n) ? n : 0; }
+  function fmt(n, d=1){
+    if (!isFinite(n)) return "–";
+    return n.toFixed(d).replace(".", ",");
+  }
+  function fmtInt(n){
+    if (!isFinite(n)) return "–";
+    return Math.round(n).toString();
+  }
+
+  function calc(){
+    const ziel = n0($("ziel").value);
+    const sBis = n0($("stueck_bis").value);
+
+    const hTotal = n0($("stunden_total").value);
+    const hBis = n0($("stunden_bis").value);
+
+    const overrideRaw = $("stunden_rest_override").value.trim();
+    const hOverride = overrideRaw === "" ? NaN : num(overrideRaw);
+
+    let hRest = NaN;
+    let restSrc = "";
+
+    if (isFinite(hOverride)) {
+      hRest = Math.max(hOverride, 0);
+      restSrc = "Reststunden: Override-Feld";
+    } else if (hTotal > 0) {
+      hRest = Math.max(hTotal - hBis, 0);
+      restSrc = "Reststunden: Gesamtstunden − geleistet";
+    } else {
+      hRest = NaN;
+      restSrc = "Reststunden: bitte Override oder Gesamt-/Geleistet-Felder nutzen";
+    }
+
+    const ist = (hBis > 0) ? (sBis / hBis) : NaN;
+
+    // Zielstücke total nur sinnvoll, wenn Gesamtstunden bekannt sind.
+    const zielStkTotal = (hTotal > 0) ? (ziel * hTotal) : NaN;
+    const fehl = isFinite(zielStkTotal) ? Math.max(zielStkTotal - sBis, 0) : NaN;
+
+    // Benötigt ab jetzt:
+    // Wenn Gesamtstunden bekannt -> fehl / hRest
+    // Wenn Gesamtstunden NICHT bekannt -> wir nehmen "ziel pro Stunde" als Ziel, aber ohne Total-Stück lässt sich "fehlende Stück" nicht bestimmen.
+    let restNeed = NaN;
+    if (hRest === 0) {
+      restNeed = (isFinite(fehl) && fehl > 0) ? Infinity : 0;
+    } else if (isFinite(fehl) && isFinite(hRest)) {
+      restNeed = fehl / hRest;
+    } else if (ziel > 0 && isFinite(hRest)) {
+      // Fallback: Ohne Gesamtstunden kann man kein Gesamtziel berechnen.
+      // Wir zeigen dann "benötigt ab jetzt" als Zielwert selbst (damit FK weiss, was er im Schnitt liefern muss).
+      restNeed = ziel;
+    }
+
+    // Prognose Tages-Stückleistung: Nur sinnvoll, wenn Gesamtstunden bekannt und Ist bekannt
+    const prog = (isFinite(ist) && hTotal > 0) ? ist : NaN;
+
+    $("k_ist").textContent = isFinite(ist) ? fmt(ist,1) : "–";
+    $("k_rest_need").textContent = (isFinite(restNeed) ? fmt(restNeed,1) : (restNeed === Infinity ? "∞" : "–"));
+    $("k_fehl").textContent = isFinite(fehl) ? fmtInt(fehl) : "–";
+    $("k_prog").textContent = isFinite(prog) ? fmt(prog,1) : "–";
+
+    // Status pill (nur wenn Ist & Ziel)
+    const pill = $("pill_status");
+    pill.className = "pill";
+    let statusTxt = "–";
+    if (ziel > 0 && isFinite(ist)) {
+      const diff = ist - ziel;
+      if (diff >= 0.5) { pill.classList.add("ok"); statusTxt = "Über Ziel"; }
+      else if (diff >= -0.5) { pill.classList.add("warn"); statusTxt = "Knapp"; }
+      else { pill.classList.add("bad"); statusTxt = "Unter Ziel"; }
+    }
+    pill.textContent = statusTxt;
+
+    // Hint
+    const hint = $("hint");
+    if (ziel <= 0) {
+      hint.textContent = "Bitte Ziel-Stückleistung setzen.";
+    } else if (!isFinite(hRest)) {
+      hint.textContent = "Bitte Reststunden ab jetzt eintragen (Override) oder Gesamt-/Geleistet-Felder nutzen.";
+    } else if (hRest === 0) {
+      hint.textContent = (isFinite(fehl) && fehl === 0) ? "Tagesziel erreicht ✅" : "Keine Reststunden mehr (oder 0 eingegeben).";
+    } else {
+      hint.textContent = `Reststunden: ${fmt(hRest,2)} Std. → Benötigt ab jetzt: ${isFinite(restNeed)?fmt(restNeed,1):(restNeed===Infinity?"∞":"–")} Stk/Std.`;
+    }
+
+    $("rest_src").textContent = restSrc + (isFinite(hRest) ? ` (${fmt(hRest,2)} Std.)` : "");
+  }
+
+  bindIds.forEach(id => $(id).addEventListener("input", calc));
+
+  $("reset").addEventListener("click", ()=>{
+    ["ziel","stunden_total","stunden_bis","stueck_bis","stunden_rest_override"].forEach(id=>$(id).value="");
+    $("ziel").value="0";
+    $("stueck_bis").value="0";
+    $("stunden_total").value="0";
+    $("stunden_bis").value="0";
+    calc();
+  });
+
+  calc();
+</script>
+</body>
+</html>
