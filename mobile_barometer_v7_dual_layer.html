@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Stückleistung – Steuerungsbarometer</title>
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --text:#0b0f1a; --muted:#5b6475;
+  --border:#e8ecf4; --shadow:0 10px 28px rgba(0,0,0,.08);
+  --green:#16a34a; --yellow:#f59e0b; --red:#ef4444;
+  --r:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1020; --card:#0f1730; --text:#f3f6ff; --muted:#b4bed3;
+    --border:#223055; --shadow:0 10px 28px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:14px 12px 26px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-top:12px;box-shadow:var(--shadow)}
+h1{font-size:16px;margin:0}
+.small{font-size:12px;color:var(--muted)}
+.kpi{font-size:36px;font-weight:950;letter-spacing:-.6px;margin-top:6px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+input{width:100%;padding:14px;font-size:18px;font-weight:900;border-radius:16px;border:1px solid var(--border);background:color-mix(in srgb, var(--card) 90%, var(--bg));color:var(--text)}
+input:focus{outline:none;border-color:color-mix(in srgb, #7aa7ff 55%, var(--border)); box-shadow:0 0 0 4px rgba(122,167,255,.18)}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 12px;border-radius:999px;font-weight:900;font-size:13px;
+  border:1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  background:color-mix(in srgb, var(--card) 92%, var(--bg));
+}
+.dot{width:10px;height:10px;border-radius:999px;background:var(--muted)}
+.pill.ok .dot{background:var(--green)}
+.pill.warn .dot{background:var(--yellow)}
+.pill.bad .dot{background:var(--red)}
+.baroBox{padding:14px;border-radius:16px;font-weight:950;text-align:center;font-size:15px;margin-top:10px;border:1px solid var(--border)}
+.baroBox.ok{background:color-mix(in srgb, #16a34a 10%, var(--card));color:color-mix(in srgb, var(--text) 15%, #16a34a)}
+.baroBox.warn{background:color-mix(in srgb, #f59e0b 12%, var(--card));color:color-mix(in srgb, var(--text) 15%, #b45309)}
+.baroBox.bad{background:color-mix(in srgb, #ef4444 10%, var(--card));color:color-mix(in srgb, var(--text) 12%, #b91c1c)}
+.metaGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.meta{padding:12px;border-radius:16px;border:1px solid color-mix(in srgb, var(--border) 75%, transparent);background:color-mix(in srgb, var(--card) 92%, var(--bg))}
+.meta .t{font-size:12px;color:var(--muted)}
+.meta .v{font-size:18px;font-weight:950;margin-top:4px}
+.progressWrap{margin-top:10px}
+.progressRow{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.progress{height:10px;border-radius:999px;background:color-mix(in srgb, var(--border) 65%, transparent);overflow:hidden}
+.progress > div{height:100%;width:0%;background:color-mix(in srgb, #7aa7ff 70%, var(--text))}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:950;list-style:none}
+summary::-webkit-details-marker{display:none}
+.tiny{font-size:12px;color:var(--muted);line-height:1.35;margin-top:8px}
+.badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 12px;border-radius:14px;font-weight:950;font-size:12px;
+  border:1px dashed color-mix(in srgb, var(--border) 75%, transparent);
+  color:var(--muted);
+  background:color-mix(in srgb, var(--card) 88%, var(--bg));
+  margin-top:10px;
+}
+.footerRow{display:flex;gap:10px;margin-top:10px}
+.btn{
+  flex:1;
+  border:1px solid var(--border); background:var(--card); color:var(--text);
+  padding:10px 12px; border-radius:14px; font-size:14px; font-weight:900;
+}
+.btn:active{transform:translateY(1px)}
+.safeBottom{height:env(safe-area-inset-bottom)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div>
+        <h1>Steuerungsbarometer</h1>
+        <div class="small">Stückleistung (Stück / Einsatzstunden)</div>
+      </div>
+      <button class="btn" id="resetBtn" type="button" style="flex:0 0 auto">Reset</button>
+    </div>
+
+    <div class="kpi" id="need">–</div>
+    <div class="small">Benötigt ab jetzt (Stk/Std)</div>
+
+    <div id="baro" class="baroBox">Bitte Eingaben ergänzen.</div>
+
+    <div class="metaGrid">
+      <div class="meta">
+        <div class="t">Druck (vs. Ziel)</div>
+        <div class="v" id="pressurePct">–</div>
+      </div>
+      <div class="meta">
+        <div class="t">Rest-Einsatzstunden</div>
+        <div class="v" id="restHours">–</div>
+      </div>
+    </div>
+
+    <div class="progressWrap">
+      <div class="progressRow">
+        <div class="small">Tagesfortschritt</div>
+        <div class="small" id="progressPct">–</div>
+      </div>
+      <div class="progress"><div id="progressFill"></div></div>
+    </div>
+
+    <div id="realityBadge" class="badge" style="display:none">⚠️ Realismus-Check: benötigte Pace deutlich über bisheriger Pace</div>
+
+    <details>
+      <summary>Details (für erfahrene FK)</summary>
+      <div class="metaGrid" style="margin-top:10px">
+        <div class="meta">
+          <div class="t">Ist-Pace bisher</div>
+          <div class="v" id="ist">–</div>
+        </div>
+        <div class="meta">
+          <div class="t">Fehlende Stück bis Ziel</div>
+          <div class="v" id="fehl">–</div>
+        </div>
+      </div>
+      <div class="tiny">
+        Hinweis: „Druck“ = benötigte Pace / Ziel. Morgens ist Gelb oft ok, spät am Tag ist Gelb kritischer.
+      </div>
+    </details>
+
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Ziel (Stk/Std)</label>
+        <input id="ziel" type="number" inputmode="decimal" step="0.1" min="0" placeholder="z.B. 40" />
+      </div>
+      <div>
+        <label>Stück bisher</label>
+        <input id="stueck" type="number" inputmode="numeric" step="1" min="0" placeholder="z.B. 820" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Geplante Stunden (Total)</label>
+        <input id="hTotal" type="number" inputmode="decimal" step="0.25" min="0" placeholder="z.B. 30.5" />
+      </div>
+      <div>
+        <label>Stunden bisher (geleistet)</label>
+        <input id="hBis" type="number" inputmode="decimal" step="0.25" min="0" placeholder="z.B. 18.0" />
+      </div>
+    </div>
+
+    <div class="footerRow">
+      <button class="btn" id="homeTip" type="button">Zum Home-Bildschirm</button>
+      <button class="btn" id="clearLocal" type="button">Eingaben löschen</button>
+    </div>
+    <div class="tiny" id="savedNote">Eingaben werden automatisch auf diesem Gerät gespeichert.</div>
+  </div>
+
+  <div class="safeBottom"></div>
+</div>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+const ids = ["ziel","stueck","hTotal","hBis"];
+function num(v){ const n=parseFloat(v); return Number.isFinite(n)?n:NaN; }
+function n0(v){ const n=parseFloat(v); return Number.isFinite(n)?n:0; }
+function fmt(n,d=1){ if(!Number.isFinite(n)) return "–"; return n.toFixed(d).replace(".",","); }
+function fmtInt(n){ if(!Number.isFinite(n)) return "–"; return Math.round(n).toString(); }
+function fmtPct(n){ if(!Number.isFinite(n)) return "–"; return Math.round(n*100).toString()+"%"; }
+
+function load(){ ids.forEach(id=>{ const v=localStorage.getItem("slb7_"+id); if(v!==null) $(id).value=v; }); }
+function save(){ ids.forEach(id=>localStorage.setItem("slb7_"+id, $(id).value ?? "")); }
+
+function setBaro(kind, text){
+  const el=$("baro");
+  el.className="baroBox"+(kind?(" "+kind):"");
+  el.textContent=text;
+}
+
+function calc(){
+  save();
+
+  const ziel=num($("ziel").value);
+  const stueck=n0($("stueck").value);
+  const hTotal=num($("hTotal").value);
+  const hBis=num($("hBis").value);
+
+  // Reset outputs if not enough inputs
+  if(!(Number.isFinite(ziel)&&ziel>0&&Number.isFinite(hTotal)&&hTotal>0&&Number.isFinite(hBis)&&hBis>=0)){
+    $("need").textContent="–";
+    $("pressurePct").textContent="–";
+    $("restHours").textContent="–";
+    $("progressPct").textContent="–";
+    $("progressFill").style.width="0%";
+    $("realityBadge").style.display="none";
+    $("ist").textContent="–";
+    $("fehl").textContent="–";
+    setBaro("", "Bitte Eingaben ergänzen.");
+    return;
+  }
+
+  const hRest=Math.max(hTotal-hBis,0);
+
+  const zielStkTotal = ziel * hTotal;
+  const fehl = Math.max(zielStkTotal - stueck, 0);
+
+  const need = (hRest>0) ? (fehl / hRest) : (fehl>0 ? Infinity : 0);
+
+  const ist = (hBis>0) ? (stueck / hBis) : NaN;
+
+  const progress = Math.min(Math.max(hBis / hTotal, 0), 1);
+  const pressure = (Number.isFinite(need)&&need!==Infinity) ? (need / ziel) : NaN;
+
+  $("need").textContent = (need===Infinity) ? "∞" : fmt(need,1);
+  $("pressurePct").textContent = Number.isFinite(pressure) ? fmtPct(pressure) : "–";
+  $("restHours").textContent = fmt(hRest,2);
+  $("progressPct").textContent = fmtPct(progress);
+  $("progressFill").style.width = (progress*100).toFixed(0) + "%";
+
+  $("ist").textContent = fmt(ist,1);
+  $("fehl").textContent = fmtInt(fehl);
+
+  // Realismus-Check: need deutlich über ist (z.B. +30%)
+  let showReality=false;
+  if(Number.isFinite(ist)&&ist>0&&Number.isFinite(need)&&need!==Infinity){
+    if(need > ist * 1.30) showReality=true;
+  }
+  $("realityBadge").style.display = showReality ? "inline-flex" : "none";
+
+  // Barometer decision: combines progress + pressure
+  let kind="warn", text="Aufmerksamkeit erforderlich – aktiv steuern";
+
+  if(progress < 0.45 && Number.isFinite(pressure) && pressure <= 1.10){
+    kind="ok"; text="Situation stabil – Kurs halten";
+  } else if(Number.isFinite(pressure) && pressure > 1.30 && progress > 0.55){
+    kind="bad"; text="Strukturelle Entscheidung prüfen";
+  } else if(Number.isFinite(pressure) && pressure > 1.45){
+    kind="bad"; text="Strukturelle Entscheidung prüfen";
+  } else if(Number.isFinite(pressure) && pressure <= 1.15 && progress < 0.70){
+    kind="ok"; text="Situation stabil – Kurs halten";
+  } else if(Number.isFinite(pressure) && pressure <= 1.30){
+    kind="warn"; text="Aufmerksamkeit erforderlich – aktiv steuern";
+  }
+
+  // Late-day tightening: if progress very high and any pressure above 1.15 -> red
+  if(progress >= 0.80 && Number.isFinite(pressure) && pressure > 1.15){
+    kind="bad"; text="Strukturelle Entscheidung prüfen";
+  }
+
+  // No rest hours
+  if(hRest === 0){
+    if(fehl === 0){ kind="ok"; text="Tagesziel erreicht – sauber"; }
+    else { kind="bad"; text="Keine Reststunden – Ziel nicht mehr aufholbar"; }
+  }
+
+  setBaro(kind, text);
+}
+
+ids.forEach(id=>$(id).addEventListener("input", calc));
+$("resetBtn").addEventListener("click", ()=>{ ids.forEach(id=>$(id).value=""); calc(); });
+
+$("clearLocal").addEventListener("click", ()=>{
+  ids.forEach(id=>localStorage.removeItem("slb7_"+id));
+  $("savedNote").textContent="Eingaben gelöscht.";
+  setTimeout(()=>$("savedNote").textContent="Eingaben werden automatisch auf diesem Gerät gespeichert.", 1200);
+});
+
+$("homeTip").addEventListener("click", ()=>{
+  alert("iPhone: Safari → Teilen → „Zum Home-Bildschirm“.\nAndroid: Browser-Menü → „Zum Startbildschirm hinzufügen“.");
+});
+
+load();
+calc();
+</script>
+</body>
+</html>
